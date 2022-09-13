@@ -51,8 +51,9 @@ class User {
           return true
         }
 
+      } else { 
+        throw new ExpressError('Invalid username/password', 400)
       }
-      return false
       
 
    }
@@ -72,9 +73,11 @@ class User {
     const result = await db.query(
       `UPDATE users
        SET last_login_at=$1
-       WHERE username=$2`,
+       WHERE username=$2
+       RETURNING username`,
        [d, username]
     )
+    if(!result.rows[0]) throw new ExpressError(`No such ${username} found.`)
 
 
    }
@@ -107,6 +110,7 @@ class User {
       WHERE username=$1`,
       [username]
     )
+    if(!result.rows[0]) throw new ExpressError(`No such ${username} found.`)
     return result.rows[0]
     
 
@@ -141,6 +145,7 @@ class User {
        `,
        [username]
     )
+    if(!results.rows[0]) throw new ExpressError(`No such ${username} found.`)
    
     return results.rows.map(user => ({
       
@@ -170,7 +175,7 @@ class User {
    */
 
    static async messagesTo(username) {
-    const result = await db.query(
+    const results = await db.query(
         `SELECT m.id,
                 m.from_username,
                 u.first_name,
@@ -184,7 +189,9 @@ class User {
           WHERE to_username = $1`,
         [username]);
 
-    return result.rows.map(m => ({
+        if(!results.rows[0]) throw new ExpressError(`No such ${username} found.`)
+
+    return results.rows.map(m => ({
       id: m.id,
       from_user: {
         username: m.from_username,
